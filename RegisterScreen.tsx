@@ -1,15 +1,41 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, Image, Dimensions, Platform, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { COLORS, FONTS } from './theme';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
+import { registerUser } from './userStorage';
 
 const { width, height } = Dimensions.get('window');
 const isTablet = width >= 600;
 
 export default function RegisterScreen() {
   const navigation = useNavigation<StackNavigationProp<any>>();
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const handleRegister = async () => {
+    setError('');
+    setSuccess('');
+    if (!email || !phone || !password || !confirmPassword) {
+      setError('请填写所有信息');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('两次密码不一致');
+      return;
+    }
+    const res = await registerUser({ email, phone, password });
+    if (res.success) {
+      setSuccess('注册成功，请登录');
+      setTimeout(() => navigation.navigate('Login'), 1000);
+    } else {
+      setError(res.message);
+    }
+  };
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.logoContainer}>
@@ -21,26 +47,36 @@ export default function RegisterScreen() {
           style={styles.input}
           placeholder="邮箱"
           placeholderTextColor={COLORS.gray}
+          value={email}
+          onChangeText={setEmail}
         />
         <TextInput
           style={styles.input}
           placeholder="手机号"
           placeholderTextColor={COLORS.gray}
+          value={phone}
+          onChangeText={setPhone}
         />
         <TextInput
           style={styles.input}
           placeholder="设置密码"
           placeholderTextColor={COLORS.gray}
           secureTextEntry
+          value={password}
+          onChangeText={setPassword}
         />
         <TextInput
           style={styles.input}
           placeholder="确认密码"
           placeholderTextColor={COLORS.gray}
           secureTextEntry
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
         />
       </View>
-      <TouchableOpacity style={styles.registerButton}>
+      {error ? <Text style={{ color: 'red', marginBottom: 8 }}>{error}</Text> : null}
+      {success ? <Text style={{ color: 'green', marginBottom: 8 }}>{success}</Text> : null}
+      <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
         <Text style={styles.registerButtonText}>注册</Text>
       </TouchableOpacity>
       <TouchableOpacity onPress={() => navigation.navigate('Login')}>

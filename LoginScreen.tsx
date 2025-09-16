@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, Image, Dimensions, Platform, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { COLORS, FONTS } from './theme';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
+import { loginUser } from './userStorage';
 
 const { width, height } = Dimensions.get('window');
 const isTablet = width >= 600;
@@ -12,6 +13,22 @@ const isTablet = width >= 600;
 
 export default function LoginScreen() {
   const navigation = useNavigation<StackNavigationProp<any>>();
+  const [account, setAccount] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const handleLogin = async () => {
+    setError('');
+    if (!account || !password) {
+      setError('请输入账号和密码');
+      return;
+    }
+    const res = await loginUser(account, password);
+    if (res.success) {
+      navigation.navigate('Home');
+    } else {
+      setError(res.message);
+    }
+  };
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.logoContainer}>
@@ -23,15 +40,20 @@ export default function LoginScreen() {
           style={styles.input}
           placeholder="邮箱/手机号"
           placeholderTextColor="#888"
+          value={account}
+          onChangeText={setAccount}
         />
         <TextInput
           style={styles.input}
           placeholder="密码"
           placeholderTextColor="#888"
           secureTextEntry
+          value={password}
+          onChangeText={setPassword}
         />
       </View>
-      <TouchableOpacity style={styles.loginButton}>
+      {error ? <Text style={{ color: 'red', marginBottom: 8 }}>{error}</Text> : null}
+      <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
         <Text style={styles.loginButtonText}>登录</Text>
       </TouchableOpacity>
       <TouchableOpacity>

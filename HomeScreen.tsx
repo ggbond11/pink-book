@@ -13,6 +13,7 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: COLORS.primaryLight,
+    overflow: 'hidden', // 防止web端内容溢出
   },
   header: {
     flexDirection: 'row',
@@ -91,7 +92,8 @@ const styles = StyleSheet.create({
     height: 56,
     alignItems: 'center',
     justifyContent: 'space-around',
-    position: 'absolute',
+    // 兼容 web 端底部固定
+    position: Platform.OS === 'web' ? 'fixed' : 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
@@ -102,6 +104,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 8,
+    zIndex: 100,
   },
   tabItem: {
     flex: 1,
@@ -202,6 +205,19 @@ const posts: Post[] = Array.from({ length: 30 }).map((_, i) => {
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
   const [menuVisible, setMenuVisible] = useState(false);
+  const [newPost, setNewPost] = useState<any>(null);
+
+  // 监听新帖子参数
+  React.useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      const params = navigation.getState()?.routes?.find((r: any) => r.name === 'Home')?.params;
+      if (params && params.newPost) {
+        setNewPost(params.newPost);
+        navigation.setParams({ newPost: undefined });
+      }
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const handleLogout = () => {
     setMenuVisible(false);
@@ -246,19 +262,31 @@ export default function HomeScreen() {
         </Pressable>
       </Modal>
       {/* 内容区域：真正瀑布流 */}
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, minHeight: 0 }}>
         <MasonryList
-          data={posts}
-          keyExtractor={(item: Post) => item.id.toString()}
+          data={newPost ? [{ id: 0, title: '新发布', summary: newPost.text || '', images: newPost.images || [] }, ...posts] : posts}
+          keyExtractor={(item: any) => item.id?.toString?.() ?? Math.random().toString()}
           numColumns={2}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => {
-            const post = item as Post;
+          renderItem={({ item }: any) => {
+            if (item.images && item.images.length > 0) {
+              return (
+                <View style={[styles.card, { width: CARD_WIDTH, alignSelf: 'flex-start' }] }>
+                  <Text style={styles.cardTitle}>{item.title}</Text>
+                  <Text style={styles.cardSummary}>{item.summary}</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 }}>
+                    {item.images.map((uri: string, idx: number) => (
+                      <Image key={idx} source={{ uri }} style={{ width: 80, height: 80, borderRadius: 8, marginRight: 8, marginBottom: 8 }} />
+                    ))}
+                  </View>
+                </View>
+              );
+            }
             return (
               <View style={[styles.card, { width: CARD_WIDTH, alignSelf: 'flex-start' }] }>
-                <Text style={styles.cardTitle}>{post.title}</Text>
-                <Text style={styles.cardSummary}>{post.summary}</Text>
+                <Text style={styles.cardTitle}>{item.title}</Text>
+                <Text style={styles.cardSummary}>{item.summary}</Text>
               </View>
             );
           }}
@@ -267,7 +295,9 @@ export default function HomeScreen() {
       {/* 底部导航栏 */}
       <View style={styles.tabBar}>
         <TouchableOpacity style={styles.tabItem}><Text style={styles.tabText}>首页</Text></TouchableOpacity>
-        <TouchableOpacity style={styles.tabItem}><Text style={styles.tabText}>发布</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('PostEditor')}>
+          <Text style={styles.tabText}>发布</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.tabItem}><Text style={styles.tabText}>消息</Text></TouchableOpacity>
         <TouchableOpacity style={styles.tabItem}><Text style={styles.tabText}>个人</Text></TouchableOpacity>
       </View>

@@ -5,8 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import { COLORS, FONTS } from './theme';
 
 
-export default function PostEditorScreen({ route }: any) {
-  const navigation = useNavigation<any>();
+export default function PostEditorScreen({ route, navigation }: any) {
   const [title, setTitle] = useState('');
   const [text, setText] = useState('');
   const [images, setImages] = useState<string[]>([]);
@@ -40,8 +39,11 @@ export default function PostEditorScreen({ route }: any) {
       alert('请输入标题、内容或添加图片');
       return;
     }
-    // 回传数据到首页
-    navigation.navigate('Home', { newPost: { title, text, images } });
+    // 回调传递数据
+    if (route.params && typeof route.params.onPublish === 'function') {
+      route.params.onPublish({ title, text, images });
+    }
+    navigation.goBack();
   };
 
   return (

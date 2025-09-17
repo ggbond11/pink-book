@@ -62,12 +62,6 @@ export default function LoginScreen() {
       <TouchableOpacity onPress={() => navigation.navigate('Register')}>
         <Text style={styles.linkText}>注册新账号</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.wechatButton}>
-        <Text style={styles.wechatButtonText}>使用微信登录</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.facebookButton}>
-        <Text style={styles.facebookButtonText}>使用Facebook登录</Text>
-      </TouchableOpacity>
       <StatusBar style="auto" />
     </ScrollView>
   );
@@ -140,36 +134,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 6,
     textDecorationLine: 'underline',
-    fontFamily: FONTS.base,
-  },
-  wechatButton: {
-    width: '90%',
-    maxWidth: 400,
-    backgroundColor: COLORS.wechat,
-    borderRadius: 6,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  wechatButtonText: {
-    color: COLORS.white,
-    fontSize: isTablet ? 18 : 16,
-    fontWeight: 'bold',
-    fontFamily: FONTS.base,
-  },
-  facebookButton: {
-    width: '90%',
-    maxWidth: 400,
-    backgroundColor: COLORS.facebook,
-    borderRadius: 6,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  facebookButtonText: {
-    color: COLORS.white,
-    fontSize: isTablet ? 18 : 16,
-    fontWeight: 'bold',
     fontFamily: FONTS.base,
   },
 });

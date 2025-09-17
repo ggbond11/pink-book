@@ -13,7 +13,7 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: COLORS.primaryLight,
-    overflow: 'hidden', // 防止web端内容溢出
+  // overflow: 'hidden', // 防止web端内容溢出
   },
   header: {
     flexDirection: 'row',
@@ -52,6 +52,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: COLORS.white,
     marginLeft: 8,
+  // overflow: 'hidden',
   },
   content: {
     paddingHorizontal: 12,
@@ -187,37 +188,44 @@ type Post = {
   summary: string;
 };
 
-const posts: Post[] = Array.from({ length: 30 }).map((_, i) => {
-  // 让部分卡片内容更长
-  let summary;
-  if (i % 7 === 0) {
-    summary = randomSummary[20 + (i % (randomSummary.length - 20))] || randomSummary[0];
-  } else {
-    summary = randomSummary[Math.floor(Math.random() * 20)];
-  }
-  return {
-    id: i + 1,
-    title: `用户分享的帖子标题 ${i + 1}`,
-    summary,
-  };
-});
+
+function getInitialPosts() {
+  return Array.from({ length: 30 }).map((_, i) => {
+    let summary;
+    if (i % 7 === 0) {
+      summary = randomSummary[20 + (i % (randomSummary.length - 20))] || randomSummary[0];
+    } else {
+      summary = randomSummary[Math.floor(Math.random() * 20)];
+    }
+    return {
+      id: i + 1,
+      title: `用户分享的帖子标题 ${i + 1}`,
+      summary,
+    };
+  });
+}
 
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
   const [menuVisible, setMenuVisible] = useState(false);
-  const [newPost, setNewPost] = useState<any>(null);
+  const [posts, setPosts] = useState<any[]>(getInitialPosts());
 
-  // 监听新帖子参数
-  React.useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      const params = navigation.getState()?.routes?.find((r: any) => r.name === 'Home')?.params;
-      if (params && params.newPost) {
-        setNewPost(params.newPost);
-        navigation.setParams({ newPost: undefined });
+  // 跳转发布页时传递回调
+  const handleGoPostEditor = () => {
+    navigation.navigate('PostEditor', {
+      onPublish: (post: { title: string; text: string; images: string[] }) => {
+        setPosts(prev => [
+          {
+            id: Date.now(),
+            title: post.title || '新发布',
+            summary: post.text || '',
+            images: post.images || []
+          },
+          ...prev
+        ]);
       }
     });
-    return unsubscribe;
-  }, [navigation]);
+  };
 
   const handleLogout = () => {
     setMenuVisible(false);
@@ -264,7 +272,7 @@ export default function HomeScreen() {
       {/* 内容区域：真正瀑布流 */}
       <View style={{ flex: 1, minHeight: 0 }}>
         <MasonryList
-          data={newPost ? [{ id: 0, title: '新发布', summary: newPost.text || '', images: newPost.images || [] }, ...posts] : posts}
+          data={posts}
           keyExtractor={(item: any) => item.id?.toString?.() ?? Math.random().toString()}
           numColumns={2}
           contentContainerStyle={styles.content}
@@ -295,7 +303,7 @@ export default function HomeScreen() {
       {/* 底部导航栏 */}
       <View style={styles.tabBar}>
         <TouchableOpacity style={styles.tabItem}><Text style={styles.tabText}>首页</Text></TouchableOpacity>
-        <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('PostEditor')}>
+  <TouchableOpacity style={styles.tabItem} onPress={handleGoPostEditor}>
           <Text style={styles.tabText}>发布</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.tabItem}><Text style={styles.tabText}>消息</Text></TouchableOpacity>

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, Image, TouchableOpacity, Dimensions, Platform, Modal, Pressable, ScrollView } from 'react-native';
 import MasonryList from '@react-native-seoul/masonry-list';
 import { COLORS, FONTS } from './theme';
 import { useNavigation } from '@react-navigation/native';
+import { getAllPosts, addPost } from './postStorage';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 600;
@@ -189,40 +190,29 @@ type Post = {
 };
 
 
-function getInitialPosts() {
-  return Array.from({ length: 30 }).map((_, i) => {
-    let summary;
-    if (i % 7 === 0) {
-      summary = randomSummary[20 + (i % (randomSummary.length - 20))] || randomSummary[0];
-    } else {
-      summary = randomSummary[Math.floor(Math.random() * 20)];
-    }
-    return {
-      id: i + 1,
-      title: `用户分享的帖子标题 ${i + 1}`,
-      summary,
-    };
-  });
-}
-
 export default function HomeScreen() {
+
   const navigation = useNavigation<any>();
   const [menuVisible, setMenuVisible] = useState(false);
-  const [posts, setPosts] = useState<any[]>(getInitialPosts());
+  const [posts, setPosts] = useState<any[]>([]);
+
+  // 首次加载时从本地读取帖子
+  useEffect(() => {
+    getAllPosts().then(setPosts);
+  }, []);
 
   // 跳转发布页时传递回调
   const handleGoPostEditor = () => {
     navigation.navigate('PostEditor', {
-      onPublish: (post: { title: string; text: string; images: string[] }) => {
-        setPosts(prev => [
-          {
-            id: Date.now(),
-            title: post.title || '新发布',
-            summary: post.text || '',
-            images: post.images || []
-          },
-          ...prev
-        ]);
+      onPublish: async (post: { title: string; text: string; images: string[] }) => {
+        const newPost = {
+          id: Date.now(),
+          title: post.title || '新发布',
+          summary: post.text || '',
+          images: post.images || []
+        };
+        await addPost(newPost);
+        setPosts(prev => [newPost, ...prev]);
       }
     });
   };

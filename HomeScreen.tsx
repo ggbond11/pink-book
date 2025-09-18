@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Image, TouchableOpacity, Dimensions, Platform, Modal, Pressable } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Image, TouchableOpacity, Dimensions, Platform, Modal, Pressable, ScrollView } from 'react-native';
 import MasonryList from '@react-native-seoul/masonry-list';
 import { COLORS, FONTS } from './theme';
 import { useNavigation } from '@react-navigation/native';
@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 12,
     paddingTop: 16,
-    paddingBottom: 80,
+    // paddingBottom: 80,
   },
   columnWrapper: {
     flexDirection: 'row',
@@ -270,29 +270,42 @@ export default function HomeScreen() {
         </Pressable>
       </Modal>
       {/* 内容区域：真正瀑布流 */}
-      <View style={{ flex: 1, minHeight: 0 }}>
+      <View
+        style={
+          Platform.OS === 'web'
+            ? {
+                height: 'calc(100vh - 56px)', // 56px为底部tabBar高度
+                overflowY: 'auto',
+              }
+            : { flex: 1, minHeight: 0 }
+        }
+      >
         <MasonryList
           data={posts}
-          keyExtractor={(item: any) => item.id?.toString?.() ?? Math.random().toString()}
+          keyExtractor={(item: Post) => item.id.toString()}
           numColumns={2}
           contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
+          showsVerticalScrollIndicator={true}
           renderItem={({ item }: any) => {
             if (item.images && item.images.length > 0) {
               return (
-                <View style={[styles.card, { width: CARD_WIDTH, alignSelf: 'flex-start' }] }>
+                <View style={[styles.card, { width: CARD_WIDTH, alignSelf: 'flex-start' }]}>
                   <Text style={styles.cardTitle}>{item.title}</Text>
                   <Text style={styles.cardSummary}>{item.summary}</Text>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 }}>
                     {item.images.map((uri: string, idx: number) => (
-                      <Image key={idx} source={{ uri }} style={{ width: 80, height: 80, borderRadius: 8, marginRight: 8, marginBottom: 8 }} />
+                      <Image
+                        key={idx}
+                        source={{ uri }}
+                        style={{ width: 80, height: 80, borderRadius: 8, marginRight: 8, marginBottom: 8 }}
+                      />
                     ))}
                   </View>
                 </View>
               );
             }
             return (
-              <View style={[styles.card, { width: CARD_WIDTH, alignSelf: 'flex-start' }] }>
+              <View style={[styles.card, { width: CARD_WIDTH, alignSelf: 'flex-start' }]}>
                 <Text style={styles.cardTitle}>{item.title}</Text>
                 <Text style={styles.cardSummary}>{item.summary}</Text>
               </View>
@@ -303,7 +316,7 @@ export default function HomeScreen() {
       {/* 底部导航栏 */}
       <View style={styles.tabBar}>
         <TouchableOpacity style={styles.tabItem}><Text style={styles.tabText}>首页</Text></TouchableOpacity>
-  <TouchableOpacity style={styles.tabItem} onPress={handleGoPostEditor}>
+        <TouchableOpacity style={styles.tabItem} onPress={handleGoPostEditor}>
           <Text style={styles.tabText}>发布</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.tabItem}><Text style={styles.tabText}>消息</Text></TouchableOpacity>

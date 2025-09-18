@@ -32,7 +32,7 @@ export default function LoginScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.logoContainer}>
-        <Image source={require('./assets/logo.svg')} style={styles.logo} resizeMode="contain" />
+        <Image source={require('./assets/logo.png')} style={styles.logo} resizeMode="contain" />
         <Text style={styles.logoText}>小粉书</Text>
       </View>
       <View style={styles.inputContainer}>

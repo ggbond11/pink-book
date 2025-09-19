@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, Image, TouchableOpacity, Dimensions, Platform, Modal, Pressable, ScrollView } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TextInput, Image, TouchableOpacity, Dimensions, Platform, Modal, Pressable, ScrollView, RefreshControl } from 'react-native';
 import MasonryList from '@react-native-seoul/masonry-list';
 import { COLORS, FONTS } from './theme';
 import { useNavigation } from '@react-navigation/native';
 import { getAllPosts, addPost } from './postStorage';
+import LoadingSpinner from './LoadingSpinner';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 600;
@@ -14,7 +15,7 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: COLORS.primaryLight,
-  // overflow: 'hidden', // 防止web端内容溢出
+    // overflow: 'hidden', // 防止web端内容溢出
   },
   header: {
     flexDirection: 'row',
@@ -53,7 +54,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: COLORS.white,
     marginLeft: 8,
-  // overflow: 'hidden',
+    // overflow: 'hidden',
   },
   content: {
     paddingHorizontal: 12,
@@ -195,6 +196,42 @@ export default function HomeScreen() {
   const navigation = useNavigation<any>();
   const [menuVisible, setMenuVisible] = useState(false);
   const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const scrollRef = useRef<ScrollView | undefined>(undefined);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // 处理刷新的函数
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setPosts(prev => shuffle(prev));
+      setRefreshing(false);
+    }, 1000);
+  }, []);
+
+  function shuffle(arr: any[]) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  const handleHomeTab = () => {
+    if (Platform.OS === 'web') {
+      const scrollEl = document.querySelector('.masonry-scroll-top');
+      if (scrollEl) (scrollEl as HTMLElement).scrollTo(0, 0);
+    } else if (scrollRef.current) {
+      // 直接使用 ScrollView 的 scrollTo 方法
+      scrollRef.current.scrollTo({ y: 0, animated: true });
+    }
+    setLoading(true);
+    setTimeout(() => {
+      setPosts(prev => shuffle(prev));
+      setLoading(false);
+    }, 1000);
+  };
 
   // 首次加载时从本地读取帖子
   useEffect(() => {
@@ -261,21 +298,30 @@ export default function HomeScreen() {
       </Modal>
       {/* 内容区域：真正瀑布流 */}
       <View
+        className="masonry-scroll-top"
         style={
           Platform.OS === 'web'
             ? {
-                height: 'calc(100vh - 56px)', // 56px为底部tabBar高度
-                overflowY: 'auto',
-              }
+              height: 'calc(100vh - 56px)', // 56px为底部tabBar高度
+              overflowY: 'auto',
+            }
             : { flex: 1, minHeight: 0 }
         }
       >
         <MasonryList
+          innerRef={scrollRef}
           data={posts}
           keyExtractor={(item: Post) => item.id.toString()}
           numColumns={2}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={true}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          refreshControl={true}
+          refreshControlProps={{
+            colors: [COLORS.primary], // Android 上的颜色
+            tintColor: COLORS.primary, // iOS 上的颜色
+          }}
           renderItem={({ item }: any) => {
             if (item.images && item.images.length > 0) {
               return (
@@ -302,16 +348,19 @@ export default function HomeScreen() {
             );
           }}
         />
+        {loading && <LoadingSpinner />}
       </View>
       {/* 底部导航栏 */}
       <View style={styles.tabBar}>
-        <TouchableOpacity style={styles.tabItem}><Text style={styles.tabText}>首页</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.tabItem} onPress={handleHomeTab}>
+          <Text style={styles.tabText}>首页</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.tabItem} onPress={handleGoPostEditor}>
           <Text style={styles.tabText}>发布</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.tabItem}><Text style={styles.tabText}>消息</Text></TouchableOpacity>
         <TouchableOpacity style={styles.tabItem}><Text style={styles.tabText}>个人</Text></TouchableOpacity>
       </View>
-    </View>
+    </View >
   );
 }

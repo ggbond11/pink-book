@@ -1,30 +1,37 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, Image, Dimensions, Platform, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { COLORS, FONTS } from './theme';
+import { COLORS, FONTS } from '../styles/theme';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
-import { loginUser } from './userStorage';
+import { registerUser } from '../utils/userStorage';
 
 const { width, height } = Dimensions.get('window');
 const isTablet = width >= 600;
 
-
-
-export default function LoginScreen() {
+export default function RegisterScreen() {
   const navigation = useNavigation<StackNavigationProp<any>>();
-  const [account, setAccount] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
-  const handleLogin = async () => {
+  const [success, setSuccess] = useState('');
+  const handleRegister = async () => {
     setError('');
-    if (!account || !password) {
-      setError('请输入账号和密码');
+    setSuccess('');
+    if (!email || !phone || !password || !confirmPassword) {
+      setError('请填写所有信息');
       return;
     }
-    const res = await loginUser(account, password);
+    if (password !== confirmPassword) {
+      setError('两次密码不一致');
+      return;
+    }
+    const res = await registerUser({ email, phone, password });
     if (res.success) {
-      navigation.navigate('Home');
+      setSuccess('注册成功，请登录');
+      setTimeout(() => navigation.navigate('Login'), 1000);
     } else {
       setError(res.message);
     }
@@ -32,35 +39,48 @@ export default function LoginScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.logoContainer}>
-        <Image source={require('./assets/logo.png')} style={styles.logo} resizeMode="contain" />
-        <Text style={styles.logoText}>小粉书</Text>
+        <Image source={require('../../assets/logo.svg')} style={styles.logo} resizeMode="contain" />
+        <Text style={styles.logoText}>注册账号</Text>
       </View>
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
-          placeholder="邮箱/手机号"
-          placeholderTextColor="#888"
-          value={account}
-          onChangeText={setAccount}
+          placeholder="邮箱"
+          placeholderTextColor={COLORS.gray}
+          value={email}
+          onChangeText={setEmail}
         />
         <TextInput
           style={styles.input}
-          placeholder="密码"
-          placeholderTextColor="#888"
+          placeholder="手机号"
+          placeholderTextColor={COLORS.gray}
+          value={phone}
+          onChangeText={setPhone}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="设置密码"
+          placeholderTextColor={COLORS.gray}
           secureTextEntry
           value={password}
           onChangeText={setPassword}
         />
+        <TextInput
+          style={styles.input}
+          placeholder="确认密码"
+          placeholderTextColor={COLORS.gray}
+          secureTextEntry
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+        />
       </View>
       {error ? <Text style={{ color: 'red', marginBottom: 8 }}>{error}</Text> : null}
-      <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-        <Text style={styles.loginButtonText}>登录</Text>
+      {success ? <Text style={{ color: 'green', marginBottom: 8 }}>{success}</Text> : null}
+      <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
+        <Text style={styles.registerButtonText}>注册</Text>
       </TouchableOpacity>
-      <TouchableOpacity>
-        <Text style={styles.linkText}>忘记密码?</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-        <Text style={styles.linkText}>注册新账号</Text>
+      <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+        <Text style={styles.linkText}>已有账号？去登录</Text>
       </TouchableOpacity>
       <StatusBar style="auto" />
     </ScrollView>
@@ -108,7 +128,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.grayLight,
     fontFamily: FONTS.base,
   },
-  loginButton: {
+  registerButton: {
     width: '90%',
     maxWidth: 400,
     backgroundColor: COLORS.primary,
@@ -122,7 +142,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  loginButtonText: {
+  registerButtonText: {
     color: COLORS.white,
     fontSize: isTablet ? 18 : 16,
     fontWeight: 'bold',

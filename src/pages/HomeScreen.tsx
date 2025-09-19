@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, Image, TouchableOpacity, Dimensions, Platform, Modal, Pressable, ScrollView, RefreshControl } from 'react-native';
 import MasonryList from '@react-native-seoul/masonry-list';
-import { COLORS, FONTS } from './theme';
+import { COLORS, FONTS } from '../styles/theme';
 import { useNavigation } from '@react-navigation/native';
-import { getAllPosts, addPost } from './postStorage';
-import LoadingSpinner from './LoadingSpinner';
+import { getAllPosts, addPost } from '../utils/postStorage';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 600;
@@ -278,7 +278,7 @@ export default function HomeScreen() {
           />
         </View>
         <TouchableOpacity onPress={() => setMenuVisible(true)}>
-          <Image source={require('./assets/icon.png')} style={styles.avatar} />
+          <Image source={require('../../assets/icon.png')} style={styles.avatar} />
         </TouchableOpacity>
       </View>
       {/* 下拉菜单 */}

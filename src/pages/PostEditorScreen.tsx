@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Image, ScrollView, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
-import { COLORS, FONTS } from './theme';
+import { COLORS, FONTS } from '../styles/theme';
 
 
 export default function PostEditorScreen({ route, navigation }: any) {

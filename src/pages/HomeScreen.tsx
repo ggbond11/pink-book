@@ -4,6 +4,7 @@ import MasonryList from '@react-native-seoul/masonry-list';
 import { COLORS, FONTS } from '../styles/theme';
 import { useNavigation } from '@react-navigation/native';
 import { getAllPosts, addPost } from '../utils/postStorage';
+import { saveMultipleImages } from '../utils/imageStorage';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const { width } = Dimensions.get('window');
@@ -242,12 +243,20 @@ export default function HomeScreen() {
   const handleGoPostEditor = () => {
     navigation.navigate('PostEditor', {
       onPublish: async (post: { title: string; text: string; images: string[] }) => {
+        let permanentImages = post.images || [];
+
+        // 如果有图片，先保存到永久存储
+        if (post.images && post.images.length > 0) {
+          permanentImages = await saveMultipleImages(post.images);
+        }
+
         const newPost = {
           id: Date.now(),
           title: post.title || '新发布',
           summary: post.text || '',
-          images: post.images || []
+          images: permanentImages  // 使用永久存储的图片路径
         };
+
         await addPost(newPost);
         setPosts(prev => [newPost, ...prev]);
       }
@@ -323,28 +332,48 @@ export default function HomeScreen() {
             tintColor: COLORS.primary, // iOS 上的颜色
           }}
           renderItem={({ item }: any) => {
+            const handlePress = () => {
+              navigation.navigate('PostDetail', { post: item });
+            };
             if (item.images && item.images.length > 0) {
               return (
-                <View style={[styles.card, { width: CARD_WIDTH, alignSelf: 'flex-start' }]}>
-                  <Text style={styles.cardTitle}>{item.title}</Text>
-                  <Text style={styles.cardSummary}>{item.summary}</Text>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 }}>
-                    {item.images.map((uri: string, idx: number) => (
+                <TouchableOpacity onPress={handlePress}>
+                  <View style={[styles.card, { width: CARD_WIDTH, alignSelf: 'flex-start' }]}>
+                    <Text style={styles.cardTitle}>{item.title}</Text>
+                    <Text style={styles.cardSummary}>{item.summary}</Text>
+                    <View style={{ marginTop: 8 }}>
+                      {/* 只展示第一张图片 */}
                       <Image
-                        key={idx}
-                        source={{ uri }}
-                        style={{ width: 80, height: 80, borderRadius: 8, marginRight: 8, marginBottom: 8 }}
+                        source={{ uri: item.images[0] }}
+                        style={{ width: '100%', height: 120, borderRadius: 8 }}
+                        resizeMode="cover"
                       />
-                    ))}
+                      {/* 如果有多张图片，显示+N的提示 */}
+                      {item.images.length > 1 && (
+                        <View style={{
+                          position: 'absolute',
+                          right: 8,
+                          bottom: 8,
+                          backgroundColor: 'rgba(0,0,0,0.6)',
+                          paddingHorizontal: 8,
+                          paddingVertical: 4,
+                          borderRadius: 12,
+                        }}>
+                          <Text style={{ color: 'white', fontSize: 12 }}>+{item.images.length - 1}</Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
-                </View>
+                </TouchableOpacity>
               );
             }
             return (
-              <View style={[styles.card, { width: CARD_WIDTH, alignSelf: 'flex-start' }]}>
-                <Text style={styles.cardTitle}>{item.title}</Text>
-                <Text style={styles.cardSummary}>{item.summary}</Text>
-              </View>
+              <TouchableOpacity onPress={handlePress}>
+                <View style={[styles.card, { width: CARD_WIDTH, alignSelf: 'flex-start' }]}>
+                  <Text style={styles.cardTitle}>{item.title}</Text>
+                  <Text style={styles.cardSummary}>{item.summary}</Text>
+                </View>
+              </TouchableOpacity>
             );
           }}
         />

@@ -4,7 +4,7 @@ import MasonryList from '@react-native-seoul/masonry-list';
 import { COLORS, FONTS } from '../styles/theme';
 import { useNavigation } from '@react-navigation/native';
 import { getAllPosts, addPost } from '../utils/postStorage';
-import { saveMultipleImages } from '../utils/imageStorage';
+import { saveMultipleImages, getActualImageUri } from '../utils/imageStorage';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const { width } = Dimensions.get('window');
@@ -236,29 +236,66 @@ export default function HomeScreen() {
 
   // 首次加载时从本地读取帖子
   useEffect(() => {
-    getAllPosts().then(setPosts);
+    const loadPosts = async () => {
+      const posts = await getAllPosts();
+
+      // 处理每个帖子的图片URI
+      const processedPosts = await Promise.all(posts.map(async (post) => {
+        if (post.images && post.images.length > 0) {
+          const processedImages = await Promise.all(
+            post.images.map(uri => getActualImageUri(uri))
+          );
+          return { ...post, images: processedImages };
+        }
+        return post;
+      }));
+
+      setPosts(processedPosts);
+    };
+
+    loadPosts();
   }, []);
 
   // 跳转发布页时传递回调
   const handleGoPostEditor = () => {
     navigation.navigate('PostEditor', {
       onPublish: async (post: { title: string; text: string; images: string[] }) => {
-        let permanentImages = post.images || [];
+        try {
+          setLoading(true); // 显示加载状态
 
-        // 如果有图片，先保存到永久存储
-        if (post.images && post.images.length > 0) {
-          permanentImages = await saveMultipleImages(post.images);
+          let permanentImages = post.images || [];
+          console.log('原始图片:', permanentImages);
+
+          // 如果有图片，先保存到永久存储
+          if (post.images && post.images.length > 0) {
+            permanentImages = await saveMultipleImages(post.images);
+            console.log('永久存储后的图片:', permanentImages);
+          }
+
+          const newPost = {
+            id: Date.now(),
+            title: post.title || '新发布',
+            summary: post.text || '',
+            images: permanentImages  // 使用永久存储的图片路径
+          };
+
+          await addPost(newPost);
+
+          // 对于Web平台，需要特殊处理图片URI
+          if (Platform.OS === 'web' && newPost.images && newPost.images.length > 0) {
+            const processedImages = await Promise.all(
+              newPost.images.map(uri => getActualImageUri(uri))
+            );
+            newPost.images = processedImages;
+          }
+
+          setPosts(prev => [newPost, ...prev]);
+        } catch (error) {
+          console.error('发布帖子失败:', error);
+          alert('发布失败，请重试');
+        } finally {
+          setLoading(false); // 隐藏加载状态
         }
-
-        const newPost = {
-          id: Date.now(),
-          title: post.title || '新发布',
-          summary: post.text || '',
-          images: permanentImages  // 使用永久存储的图片路径
-        };
-
-        await addPost(newPost);
-        setPosts(prev => [newPost, ...prev]);
       }
     });
   };
@@ -335,7 +372,13 @@ export default function HomeScreen() {
             const handlePress = () => {
               navigation.navigate('PostDetail', { post: item });
             };
-            if (item.images && item.images.length > 0) {
+
+            const hasValidImages = item.images &&
+              Array.isArray(item.images) &&
+              item.images.length > 0 &&
+              item.images[0];
+
+            if (hasValidImages) {
               return (
                 <TouchableOpacity onPress={handlePress}>
                   <View style={[styles.card, { width: CARD_WIDTH, alignSelf: 'flex-start' }]}>
@@ -347,6 +390,7 @@ export default function HomeScreen() {
                         source={{ uri: item.images[0] }}
                         style={{ width: '100%', height: 120, borderRadius: 8 }}
                         resizeMode="cover"
+                        onError={(e) => console.error('图片加载失败:', item.images[0], e.nativeEvent.error)}
                       />
                       {/* 如果有多张图片，显示+N的提示 */}
                       {item.images.length > 1 && (
@@ -367,6 +411,7 @@ export default function HomeScreen() {
                 </TouchableOpacity>
               );
             }
+
             return (
               <TouchableOpacity onPress={handlePress}>
                 <View style={[styles.card, { width: CARD_WIDTH, alignSelf: 'flex-start' }]}>

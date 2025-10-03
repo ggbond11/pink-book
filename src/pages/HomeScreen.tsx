@@ -5,6 +5,7 @@ import { COLORS, FONTS } from '../styles/theme';
 import { useNavigation } from '@react-navigation/native';
 import { getAllPosts, addPost } from '../utils/postStorage';
 import { saveMultipleImages, getActualImageUri } from '../utils/imageStorage';
+import { getUserProfile } from '../utils/profileStorage';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const { width } = Dimensions.get('window');
@@ -16,7 +17,6 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: COLORS.primaryLight,
-    // overflow: 'hidden', // 防止web端内容溢出
   },
   header: {
     flexDirection: 'row',
@@ -123,6 +123,7 @@ const styles = StyleSheet.create({
 });
 
 const menuStyles = StyleSheet.create({
+  // 保留原有菜单样式...
   menuOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.1)',
@@ -191,19 +192,20 @@ type Post = {
   summary: string;
 };
 
-
 export default function HomeScreen() {
-
   const navigation = useNavigation<any>();
   const [menuVisible, setMenuVisible] = useState(false);
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<ScrollView | undefined>(undefined);
   const [refreshing, setRefreshing] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>({ avatar: null });
+  const [avatarKey, setAvatarKey] = useState(Date.now()); // 用于强制刷新头像
 
   // 处理刷新的函数
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
+    loadUserProfile();
     setTimeout(() => {
       setPosts(prev => shuffle(prev));
       setRefreshing(false);
@@ -228,15 +230,32 @@ export default function HomeScreen() {
       scrollRef.current.scrollTo({ y: 0, animated: true });
     }
     setLoading(true);
+    loadUserProfile(); // 刷新用户资料，包括头像
     setTimeout(() => {
       setPosts(prev => shuffle(prev));
       setLoading(false);
     }, 1000);
   };
 
-  // 首次加载时从本地读取帖子
+  // 加载用户资料，包括头像
+  const loadUserProfile = async () => {
+    try {
+      const profile = await getUserProfile();
+      console.log('首页加载用户资料:', profile);
+      setUserProfile(profile);
+      setAvatarKey(Date.now()); // 强制刷新头像
+    } catch (error) {
+      console.error('加载用户资料失败:', error);
+    }
+  };
+
+  // 首次加载时从本地读取帖子和用户资料
   useEffect(() => {
-    const loadPosts = async () => {
+    const loadData = async () => {
+      // 加载用户资料
+      await loadUserProfile();
+      
+      // 加载所有帖子
       const posts = await getAllPosts();
 
       // 处理每个帖子的图片URI
@@ -253,8 +272,17 @@ export default function HomeScreen() {
       setPosts(processedPosts);
     };
 
-    loadPosts();
+    loadData();
   }, []);
+
+  // 添加导航监听器，当用户从个人页面返回时重新加载用户资料
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadUserProfile();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   // 跳转发布页时传递回调
   const handleGoPostEditor = () => {
@@ -324,7 +352,12 @@ export default function HomeScreen() {
           />
         </View>
         <TouchableOpacity onPress={() => setMenuVisible(true)}>
-          <Image source={require('../../assets/icon.png')} style={styles.avatar} />
+          <Image 
+            key={`header-avatar-${avatarKey}`} // 使用key强制刷新
+            source={userProfile.avatar ? { uri: userProfile.avatar } : require('../../assets/icon.png')} 
+            style={styles.avatar} 
+            onError={(e) => console.error('头像加载失败:', userProfile.avatar, e.nativeEvent.error)}
+          />
         </TouchableOpacity>
       </View>
       {/* 下拉菜单 */}
@@ -336,6 +369,15 @@ export default function HomeScreen() {
       >
         <Pressable style={menuStyles.menuOverlay} onPress={() => setMenuVisible(false)}>
           <View style={menuStyles.menuContainer}>
+            <TouchableOpacity 
+              style={menuStyles.menuItem} 
+              onPress={() => {
+                setMenuVisible(false);
+                navigation.navigate('Profile');
+              }}
+            >
+              <Text style={menuStyles.menuItemText}>个人主页</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={menuStyles.menuItem} onPress={handleLogout}>
               <Text style={menuStyles.menuItemText}>退出登录</Text>
             </TouchableOpacity>
@@ -433,7 +475,9 @@ export default function HomeScreen() {
           <Text style={styles.tabText}>发布</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.tabItem}><Text style={styles.tabText}>消息</Text></TouchableOpacity>
-        <TouchableOpacity style={styles.tabItem}><Text style={styles.tabText}>个人</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.tabItem} onPress={() => navigation.navigate('Profile')}>
+          <Text style={styles.tabText}>个人</Text>
+        </TouchableOpacity>
       </View>
     </View >
   );

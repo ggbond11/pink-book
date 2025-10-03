@@ -123,6 +123,10 @@ export default function PostDetailScreen() {
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
+  // 获取作者信息，如果存在的话
+  const authorNickname = post.author?.nickname || "用户昵称";
+  const authorAvatar = post.author?.avatar;
+
   const handleBack = () => {
     navigation.goBack();
   };
@@ -188,10 +192,10 @@ export default function PostDetailScreen() {
       <ScrollView>
         <View style={styles.userInfo}>
           <Image 
-            source={require('../../assets/icon.png')} 
+            source={authorAvatar ? { uri: authorAvatar } : require('../../assets/icon.png')} 
             style={styles.avatar} 
           />
-          <Text style={styles.username}>用户昵称</Text>
+          <Text style={styles.username}>{authorNickname}</Text>
         </View>
 
         {renderImageCarousel()}

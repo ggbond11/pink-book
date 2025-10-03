@@ -6,6 +6,8 @@ import RegisterScreen from './pages/RegisterScreen';
 import HomeScreen from './pages/HomeScreen';
 import PostEditorScreen from './pages/PostEditorScreen';
 import PostDetailScreen from './pages/PostDetailScreen';
+import ProfileScreen from './pages/ProfileScreen';
+import ProfileEditScreen from './pages/ProfileEditScreen';
 
 const Stack = createStackNavigator();
 
@@ -18,6 +20,8 @@ export default function App() {
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="PostEditor" component={PostEditorScreen} />
         <Stack.Screen name="PostDetail" component={PostDetailScreen} />
+        <Stack.Screen name="Profile" component={ProfileScreen} />
+        <Stack.Screen name="ProfileEdit" component={ProfileEditScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

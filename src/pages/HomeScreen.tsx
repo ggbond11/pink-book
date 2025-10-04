@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, Image, TouchableOpacity, Dimensions, Platform, Modal, Pressable, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Image, TouchableOpacity, Dimensions, Platform, Modal, Pressable, ScrollView, RefreshControl, Keyboard } from 'react-native';
 import MasonryList from '@react-native-seoul/masonry-list';
 import { COLORS, FONTS } from '../styles/theme';
 import { useNavigation } from '@react-navigation/native';
@@ -251,12 +251,14 @@ export default function HomeScreen() {
   const [userProfile, setUserProfile] = useState<any>({ avatar: null });
   const [avatarKey, setAvatarKey] = useState(Date.now()); // 用于强制刷新头像
   
-  // 新增搜索相关状态
+  // 搜索相关状态
   const [searchQuery, setSearchQuery] = useState('');
   const [allPosts, setAllPosts] = useState<any[]>([]); // 存储所有帖子的原始数据
   const [isSearching, setIsSearching] = useState(false);
-  // 新增输入框聚焦状态
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  
+  // 创建TextInput的引用
+  const searchInputRef = useRef<TextInput>(null);
 
   // 处理刷新的函数
   const onRefresh = React.useCallback(() => {
@@ -315,6 +317,15 @@ export default function HomeScreen() {
     setSearchQuery('');
     setPosts(allPosts);
     setIsSearching(false);
+    // 隐藏键盘
+    Keyboard.dismiss();
+  };
+
+  // 处理搜索框点击，确保在Android上能正常弹出键盘
+  const handleSearchPress = () => {
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
   };
 
   const handleHomeTab = () => {
@@ -492,11 +503,16 @@ export default function HomeScreen() {
       {/* 顶部导航栏 */}
       <View style={styles.header}>
         <Text style={styles.logoText}>小粉书</Text>
-        <View style={[
-          styles.searchBoxWrapper, 
-          isSearchFocused && styles.searchBoxWrapperFocused
-        ]}>
+        <TouchableOpacity 
+          activeOpacity={1}
+          style={[
+            styles.searchBoxWrapper, 
+            isSearchFocused && styles.searchBoxWrapperFocused
+          ]}
+          onPress={handleSearchPress}
+        >
           <TextInput
+            ref={searchInputRef}
             style={[
               styles.searchBox,
               isSearchFocused && styles.searchBoxFocused
@@ -507,13 +523,16 @@ export default function HomeScreen() {
             onChangeText={handleSearchChange}
             onFocus={() => setIsSearchFocused(true)}
             onBlur={() => setIsSearchFocused(false)}
+            editable={true}
+            autoCapitalize="none"
+            autoCorrect={false}
           />
           {searchQuery ? (
             <TouchableOpacity style={styles.clearButton} onPress={clearSearch}>
               <Text style={styles.clearButtonText}>×</Text>
             </TouchableOpacity>
           ) : null}
-        </View>
+        </TouchableOpacity>
         <TouchableOpacity onPress={() => setMenuVisible(true)}>
           <Image 
             key={`header-avatar-${avatarKey}`} // 使用key强制刷新

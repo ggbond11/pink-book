@@ -40,14 +40,38 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     justifyContent: 'center',
     height: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  searchBoxWrapperFocused: {
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
   },
   searchBox: {
+    flex: 1,
     paddingHorizontal: 18,
     fontSize: isTablet ? 18 : 16,
     color: COLORS.primary,
     height: 48,
     borderRadius: 28,
     fontFamily: FONTS.base,
+  },
+  searchBoxFocused: {
+    color: '#000', // 聚焦时文字颜色更深
+  },
+  clearButton: {
+    padding: 8,
+    marginRight: 8,
+  },
+  clearButtonText: {
+    color: COLORS.gray,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   avatar: {
     width: 36,
@@ -118,6 +142,31 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: isTablet ? 18 : 16,
     fontWeight: 'bold',
+    fontFamily: FONTS.base,
+  },
+  noResultsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  noResultsText: {
+    fontSize: 18,
+    color: COLORS.gray,
+    textAlign: 'center',
+    fontFamily: FONTS.base,
+  },
+  searchResultsInfo: {
+    padding: 12,
+    backgroundColor: 'rgba(255,105,180,0.1)',
+    marginHorizontal: 12,
+    marginBottom: 8,
+    borderRadius: 8,
+  },
+  searchResultsText: {
+    color: COLORS.primary,
+    fontSize: 14,
+    textAlign: 'center',
     fontFamily: FONTS.base,
   },
 });
@@ -201,16 +250,29 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [userProfile, setUserProfile] = useState<any>({ avatar: null });
   const [avatarKey, setAvatarKey] = useState(Date.now()); // 用于强制刷新头像
+  
+  // 新增搜索相关状态
+  const [searchQuery, setSearchQuery] = useState('');
+  const [allPosts, setAllPosts] = useState<any[]>([]); // 存储所有帖子的原始数据
+  const [isSearching, setIsSearching] = useState(false);
+  // 新增输入框聚焦状态
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   // 处理刷新的函数
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
     loadUserProfile();
     setTimeout(() => {
-      setPosts(prev => shuffle(prev));
+      if (searchQuery) {
+        // 如果有搜索关键词，刷新搜索结果
+        filterPosts(searchQuery);
+      } else {
+        // 否则随机打乱所有帖子
+        setPosts(shuffle(allPosts));
+      }
       setRefreshing(false);
     }, 1000);
-  }, []);
+  }, [searchQuery, allPosts]);
 
   function shuffle(arr: any[]) {
     const a = arr.slice();
@@ -220,6 +282,40 @@ export default function HomeScreen() {
     }
     return a;
   }
+
+  // 模糊搜索过滤函数
+  const filterPosts = (query: string) => {
+    if (!query.trim()) {
+      // 如果搜索框为空，显示所有帖子
+      setPosts(allPosts);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    const lowercaseQuery = query.toLowerCase().trim();
+    
+    // 过滤标题中包含搜索关键词的帖子
+    const filtered = allPosts.filter(post => 
+      post.title.toLowerCase().includes(lowercaseQuery) || 
+      post.summary.toLowerCase().includes(lowercaseQuery)
+    );
+    
+    setPosts(filtered);
+  };
+
+  // 处理搜索输入变化
+  const handleSearchChange = (text: string) => {
+    setSearchQuery(text);
+    filterPosts(text);
+  };
+
+  // 清除搜索
+  const clearSearch = () => {
+    setSearchQuery('');
+    setPosts(allPosts);
+    setIsSearching(false);
+  };
 
   const handleHomeTab = () => {
     if (Platform.OS === 'web') {
@@ -231,8 +327,12 @@ export default function HomeScreen() {
     }
     setLoading(true);
     loadUserProfile(); // 刷新用户资料，包括头像
+    
+    // 清除搜索状态
+    clearSearch();
+    
     setTimeout(() => {
-      setPosts(prev => shuffle(prev));
+      setPosts(shuffle(allPosts));
       setLoading(false);
     }, 1000);
   };
@@ -269,7 +369,8 @@ export default function HomeScreen() {
         return post;
       }));
 
-      setPosts(processedPosts);
+      setAllPosts(processedPosts); // 存储所有帖子
+      setPosts(processedPosts); // 显示所有帖子
     };
 
     loadData();
@@ -317,7 +418,22 @@ export default function HomeScreen() {
             newPost.images = processedImages;
           }
 
-          setPosts(prev => [newPost, ...prev]);
+          // 更新两个状态
+          setAllPosts(prev => [newPost, ...prev]);
+          
+          // 如果正在搜索，检查新帖子是否符合搜索条件
+          if (searchQuery) {
+            const lowercaseQuery = searchQuery.toLowerCase();
+            if (
+              newPost.title.toLowerCase().includes(lowercaseQuery) || 
+              newPost.summary.toLowerCase().includes(lowercaseQuery)
+            ) {
+              setPosts(prev => [newPost, ...prev]);
+            }
+          } else {
+            // 不在搜索状态，直接添加到显示列表
+            setPosts(prev => [newPost, ...prev]);
+          }
         } catch (error) {
           console.error('发布帖子失败:', error);
           alert('发布失败，请重试');
@@ -339,17 +455,64 @@ export default function HomeScreen() {
     }, 200);
   };
 
+  // 渲染搜索结果信息
+  const renderSearchResultsInfo = () => {
+    if (!isSearching || !searchQuery) return null;
+    
+    return (
+      <View style={styles.searchResultsInfo}>
+        <Text style={styles.searchResultsText}>
+          {posts.length > 0 
+            ? `找到 ${posts.length} 条与"${searchQuery}"相关的内容` 
+            : `没有找到与"${searchQuery}"相关的内容`}
+        </Text>
+      </View>
+    );
+  };
+
+  // 渲染无搜索结果
+  const renderNoResults = () => {
+    if (posts.length > 0 || !isSearching) return null;
+    
+    return (
+      <View style={styles.noResultsContainer}>
+        <Text style={styles.noResultsText}>没有找到相关内容</Text>
+        <TouchableOpacity 
+          style={{ marginTop: 16, padding: 10 }}
+          onPress={clearSearch}
+        >
+          <Text style={{ color: COLORS.primary, fontSize: 16 }}>返回全部内容</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.root}>
       {/* 顶部导航栏 */}
       <View style={styles.header}>
         <Text style={styles.logoText}>小粉书</Text>
-        <View style={styles.searchBoxWrapper}>
+        <View style={[
+          styles.searchBoxWrapper, 
+          isSearchFocused && styles.searchBoxWrapperFocused
+        ]}>
           <TextInput
-            style={styles.searchBox}
+            style={[
+              styles.searchBox,
+              isSearchFocused && styles.searchBoxFocused
+            ]}
             placeholder="搜索你的生活..."
-            placeholderTextColor="#ff69b4"
+            placeholderTextColor={isSearchFocused ? "#d14b8f" : "#ff69b4"}
+            value={searchQuery}
+            onChangeText={handleSearchChange}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
           />
+          {searchQuery ? (
+            <TouchableOpacity style={styles.clearButton} onPress={clearSearch}>
+              <Text style={styles.clearButtonText}>×</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
         <TouchableOpacity onPress={() => setMenuVisible(true)}>
           <Image 
@@ -396,74 +559,83 @@ export default function HomeScreen() {
             : { flex: 1, minHeight: 0 }
         }
       >
-        <MasonryList
-          innerRef={scrollRef}
-          data={posts}
-          keyExtractor={(item: Post) => item.id.toString()}
-          numColumns={2}
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={true}
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          refreshControl={true}
-          refreshControlProps={{
-            colors: [COLORS.primary], // Android 上的颜色
-            tintColor: COLORS.primary, // iOS 上的颜色
-          }}
-          renderItem={({ item }: any) => {
-            const handlePress = () => {
-              navigation.navigate('PostDetail', { post: item });
-            };
+        {/* 搜索结果信息 */}
+        {renderSearchResultsInfo()}
+        
+        {/* 无搜索结果提示 */}
+        {renderNoResults()}
+        
+        {/* 瀑布流列表 */}
+        {(!isSearching || posts.length > 0) && (
+          <MasonryList
+            innerRef={scrollRef}
+            data={posts}
+            keyExtractor={(item: Post) => item.id.toString()}
+            numColumns={2}
+            contentContainerStyle={styles.content}
+            showsVerticalScrollIndicator={true}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            refreshControl={true}
+            refreshControlProps={{
+              colors: [COLORS.primary], // Android 上的颜色
+              tintColor: COLORS.primary, // iOS 上的颜色
+            }}
+            renderItem={({ item }: any) => {
+              const handlePress = () => {
+                navigation.navigate('PostDetail', { post: item });
+              };
 
-            const hasValidImages = item.images &&
-              Array.isArray(item.images) &&
-              item.images.length > 0 &&
-              item.images[0];
+              const hasValidImages = item.images &&
+                Array.isArray(item.images) &&
+                item.images.length > 0 &&
+                item.images[0];
 
-            if (hasValidImages) {
+              if (hasValidImages) {
+                return (
+                  <TouchableOpacity onPress={handlePress}>
+                    <View style={[styles.card, { width: CARD_WIDTH, alignSelf: 'flex-start' }]}>
+                      <Text style={styles.cardTitle}>{item.title}</Text>
+                      <Text style={styles.cardSummary}>{item.summary}</Text>
+                      <View style={{ marginTop: 8 }}>
+                        {/* 只展示第一张图片 */}
+                        <Image
+                          source={{ uri: item.images[0] }}
+                          style={{ width: '100%', height: 120, borderRadius: 8 }}
+                          resizeMode="cover"
+                          onError={(e) => console.error('图片加载失败:', item.images[0], e.nativeEvent.error)}
+                        />
+                        {/* 如果有多张图片，显示+N的提示 */}
+                        {item.images.length > 1 && (
+                          <View style={{
+                            position: 'absolute',
+                            right: 8,
+                            bottom: 8,
+                            backgroundColor: 'rgba(0,0,0,0.6)',
+                            paddingHorizontal: 8,
+                            paddingVertical: 4,
+                            borderRadius: 12,
+                          }}>
+                            <Text style={{ color: 'white', fontSize: 12 }}>+{item.images.length - 1}</Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              }
+
               return (
                 <TouchableOpacity onPress={handlePress}>
                   <View style={[styles.card, { width: CARD_WIDTH, alignSelf: 'flex-start' }]}>
                     <Text style={styles.cardTitle}>{item.title}</Text>
                     <Text style={styles.cardSummary}>{item.summary}</Text>
-                    <View style={{ marginTop: 8 }}>
-                      {/* 只展示第一张图片 */}
-                      <Image
-                        source={{ uri: item.images[0] }}
-                        style={{ width: '100%', height: 120, borderRadius: 8 }}
-                        resizeMode="cover"
-                        onError={(e) => console.error('图片加载失败:', item.images[0], e.nativeEvent.error)}
-                      />
-                      {/* 如果有多张图片，显示+N的提示 */}
-                      {item.images.length > 1 && (
-                        <View style={{
-                          position: 'absolute',
-                          right: 8,
-                          bottom: 8,
-                          backgroundColor: 'rgba(0,0,0,0.6)',
-                          paddingHorizontal: 8,
-                          paddingVertical: 4,
-                          borderRadius: 12,
-                        }}>
-                          <Text style={{ color: 'white', fontSize: 12 }}>+{item.images.length - 1}</Text>
-                        </View>
-                      )}
-                    </View>
                   </View>
                 </TouchableOpacity>
               );
-            }
-
-            return (
-              <TouchableOpacity onPress={handlePress}>
-                <View style={[styles.card, { width: CARD_WIDTH, alignSelf: 'flex-start' }]}>
-                  <Text style={styles.cardTitle}>{item.title}</Text>
-                  <Text style={styles.cardSummary}>{item.summary}</Text>
-                </View>
-              </TouchableOpacity>
-            );
-          }}
-        />
+            }}
+          />
+        )}
         {loading && <LoadingSpinner />}
       </View>
       {/* 底部导航栏 */}

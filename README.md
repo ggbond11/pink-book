@@ -40,3 +40,41 @@
 - **React Native Masonry List**: 瀑布流布局组件
 
 ## 项目结构
+
+src/ ├── components/ # 可复用组件 │ └── LoadingSpinner.tsx ├── pages/ # 页面组件 │ ├── HomeScreen.tsx # 首页 │ ├── LoginScreen.tsx # 登录页 │ ├── RegisterScreen.tsx # 注册页 │ ├── PostEditorScreen.tsx # 内容发布页 │ ├── PostDetailScreen.tsx # 内容详情页 │ ├── ProfileScreen.tsx # 个人主页 │ └── ProfileEditScreen.tsx # 个人资料编辑页 ├── styles/ # 全局样式 │ └── theme.ts # 主题配置 ├── utils/ # 工具函数 │ ├── imageStorage.ts # 图片存储处理 │ ├── postStorage.ts # 帖子数据处理 │ └── profileStorage.ts # 用户资料处理 └── App.tsx # 应用入口
+
+
+## 安装与运行
+
+### 前置要求
+- Node.js (v14+)
+- npm 或 yarn
+- Expo CLI (`npm install -g expo-cli`)
+
+### 安装依赖
+```bash
+# 使用npm
+npm install
+
+# 或使用yarn
+yarn install
+
+# 启动开发服务器
+npm start
+# 或
+yarn start
+
+# 在iOS模拟器上运行
+npm run ios
+# 或
+yarn ios
+
+# 在Android模拟器上运行
+npm run android
+# 或
+yarn android
+
+# 在Web浏览器中运行
+npm run web
+# 或
+yarn web

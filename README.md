@@ -41,7 +41,24 @@
 
 ## 项目结构
 
-src/ ├── components/ # 可复用组件 │ └── LoadingSpinner.tsx ├── pages/ # 页面组件 │ ├── HomeScreen.tsx # 首页 │ ├── LoginScreen.tsx # 登录页 │ ├── RegisterScreen.tsx # 注册页 │ ├── PostEditorScreen.tsx # 内容发布页 │ ├── PostDetailScreen.tsx # 内容详情页 │ ├── ProfileScreen.tsx # 个人主页 │ └── ProfileEditScreen.tsx # 个人资料编辑页 ├── styles/ # 全局样式 │ └── theme.ts # 主题配置 ├── utils/ # 工具函数 │ ├── imageStorage.ts # 图片存储处理 │ ├── postStorage.ts # 帖子数据处理 │ └── profileStorage.ts # 用户资料处理 └── App.tsx # 应用入口
+src/ 
+├── components/ # 可复用组件 │ 
+    └── LoadingSpinner.tsx 
+├── pages/ # 页面组件 │ 
+    ├── HomeScreen.tsx # 首页 │ 
+    ├── LoginScreen.tsx # 登录页 │ 
+    ├── RegisterScreen.tsx # 注册页 │ 
+    ├── PostEditorScreen.tsx # 内容发布页 │ 
+    ├── PostDetailScreen.tsx # 内容详情页 │ 
+    ├── ProfileScreen.tsx # 个人主页 │ 
+    └── ProfileEditScreen.tsx # 个人资料编辑页 
+├── styles/ # 全局样式 │ 
+    └── theme.ts # 主题配置 
+├── utils/ # 工具函数 │ 
+    ├── imageStorage.ts # 图片存储处理 │ 
+    ├── postStorage.ts # 帖子数据处理 │ 
+    └── profileStorage.ts # 用户资料处理 
+└── App.tsx # 应用入口
 
 
 ## 安装与运行

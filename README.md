@@ -41,6 +41,7 @@
 
 ## 项目结构
 
+```text
 src/ 
 ├── components/ # 可复用组件 │ 
     └── LoadingSpinner.tsx 
@@ -59,6 +60,7 @@ src/
     ├── postStorage.ts # 帖子数据处理 │ 
     └── profileStorage.ts # 用户资料处理 
 └── App.tsx # 应用入口
+```
 
 
 ## 安装与运行
